@@ -1,0 +1,9 @@
+{
+  "name": "Правда или Действие",
+  "short_name": "ПравдаИлиДействие",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "description": "Игра 'Правда или Действие' для друзей и пар.",
+  "icons": []
+}

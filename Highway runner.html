@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Highway Runner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: manipulation;
+            user-select: none;
+        }
+
+        body {
+            background: #000;
+            color: #ff0000;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: relative;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            height: 100vh;
+            overflow: hidden;
+            background: #000;
+        }
+
+        /* Градиентные границы */
+        .gradient-border {
+            position: absolute;
+            z-index: 100;
+            pointer-events: none;
+        }
+        
+        .gradient-top {
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 80px;
+            background: linear-gradient(to bottom, rgba(255, 0, 0, 0.8), rgba(0, 0, 0, 0));
+        }
+        
+        .gradient-bottom {
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 80px;
+            background: linear-gradient(to top, rgba(255, 0, 0, 0.8), rgba(0, 0, 0, 0));
+        }
+        
+        .gradient-left {
+            top: 0;
+            left: 0;
+            width: 50px;
+            height: 100%;
+            background: linear-gradient(to right, rgba(255, 0, 0, 0.8), rgba(0, 0, 0, 0));
+        }
+        
+        .gradient-right {
+            top: 0;
+            right: 0;
+            width: 50px;
+            height: 100%;
+            background: linear-gradient(to left, rgba(255, 0, 0, 0.8), rgba(0, 0, 0, 0));
+        }
+
+        /* Стили для экрана меню */
+        #menu-screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle, #1a0000 0%, #000 70%);
+            z-index: 10;
+        }
+
+        .title {
+            font-size: 3.5rem;
+            margin-bottom: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000, 0 0 30px #ff0000;
+            animation: neon-pulse 2s infinite alternate;
+            transform: translateY(-10px);
+            color: #ff0000;
+        }
+
+        .score-container {
+            margin: 20px 0 40px;
+            font-size: 1.8rem;
+            text-shadow: 0 0 5px #ff0000;
+            color: #ff0000;
+            min-height: 50px;
+        }
+
+        .high-score {
+            font-size: 2.5rem;
+            color: #ff0000;
+            animation: score-pulse 1.5s infinite;
+            display: inline-block;
+            min-width: 80px;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .high-score.show {
+            opacity: 1;
+        }
+
+        .menu-button {
+            background: rgba(70, 0, 0, 0.7);
+            color: #ff0000;
+            border: 2px solid #ff0000;
+            border-radius: 50px;
+            font-size: 1.5rem;
+            padding: 15px 40px;
+            margin: 15px;
+            width: 80%;
+            max-width: 300px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 5px #ff0000;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.7);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .menu-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: 0.5s;
+        }
+
+        .menu-button:hover::before {
+            left: 100%;
+        }
+
+        .menu-button:hover {
+            background: rgba(255, 0, 0, 0.8);
+            color: #000;
+            box-shadow: 0 0 30px #ff0000;
+            transform: scale(1.05);
+        }
+
+        /* Стили для экрана мультиплеера */
+        #multiplayer-screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 20;
+            display: none;
+        }
+
+        .code-display {
+            font-size: 2.5rem;
+            letter-spacing: 5px;
+            margin: 30px 0;
+            padding: 15px 30px;
+            background: rgba(70, 0, 0, 0.5);
+            border: 2px solid #ff0000;
+            border-radius: 10px;
+            text-shadow: 0 0 10px #ff0000;
+            color: #ff0000;
+        }
+
+        .input-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 80%;
+            max-width: 350px;
+        }
+
+        .code-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.5rem;
+            background: rgba(40, 0, 0, 0.7);
+            color: #ff0000;
+            border: 2px solid #ff0000;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 0 0 5px #ff0000;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
+        }
+
+        .code-input::placeholder {
+            color: #ff5555;
+        }
+
+        .join-button {
+            background: rgba(70, 0, 0, 0.7);
+            color: #ff0000;
+            border: 2px solid #ff0000;
+            border-radius: 50px;
+            font-size: 1.5rem;
+            padding: 15px;
+            width: 100%;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 5px #ff0000;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .join-button:hover {
+            background: rgba(255, 0, 0, 0.8);
+            color: #000;
+            box-shadow: 0 0 25px #ff0000;
+            transform: scale(1.05);
+        }
+
+        .status {
+            font-size: 2rem;
+            margin-top: 30px;
+            text-shadow: 0 0 5px #ff0000;
+            color: #ff0000;
+        }
+
+        /* Стили для игрового экрана */
+        #game-screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            display: none;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #score-display {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 1.8rem;
+            color: #ff0000;
+            text-shadow: 0 0 5px #ff0000;
+            z-index: 5;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px 15px;
+            border-radius: 10px;
+            border: 1px solid #ff0000;
+        }
+
+        #crash-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 0, 0, 0.5);
+            z-index: 50;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem; /* Уменьшенный размер */
+            color: white;
+            text-shadow: 0 0 10px #000;
+            animation: crash-pulse 0.5s infinite alternate;
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* Анимации */
+        @keyframes neon-pulse {
+            from {
+                text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000, 0 0 30px #ff0000;
+            }
+            to {
+                text-shadow: 0 0 15px #ff0000, 0 0 30px #ff0000, 0 0 45px #ff0000;
+            }
+        }
+
+        @keyframes score-pulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.2);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes crash-pulse {
+            from {
+                background: rgba(255, 0, 0, 0.5);
+            }
+            to {
+                background: rgba(255, 0, 0, 0.8);
+            }
+        }
+
+        /* Адаптивные стили */
+        @media (max-width: 500px) {
+            .title {
+                font-size: 2.5rem;
+            }
+            .high-score {
+                font-size: 2rem;
+            }
+            .menu-button {
+                font-size: 1.2rem;
+                padding: 12px 30px;
+            }
+            .code-display {
+                font-size: 2rem;
+            }
+            #crash-overlay {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- Градиентные границы -->
+        <div class="gradient-border gradient-top"></div>
+        <div class="gradient-border gradient-bottom"></div>
+        <div class="gradient-border gradient-left"></div>
+        <div class="gradient-border gradient-right"></div>
+        
+        <!-- Экран меню -->
+        <div id="menu-screen">
+            <h1 class="title">Highway Runner</h1>
+            
+            <div class="score-container">
+                Лучший рекорд: <span class="high-score" id="high-score">0</span>
+            </div>
+            
+            <button class="menu-button" id="start-button">Начать игру</button>
+            <button class="menu-button" id="multiplayer-button">Мультиплеер</button>
+        </div>
+
+        <!-- Экран мультиплеера -->
+        <div id="multiplayer-screen">
+            <h2 class="title">Мультиплеер</h2>
+            
+            <div class="code-display" id="game-code">12345678</div>
+            
+            <div class="input-container">
+                <input type="text" class="code-input" id="code-input" placeholder="Введите код" maxlength="8">
+                <button class="join-button" id="join-button">Войти</button>
+            </div>
+            
+            <div class="status" id="status">Ожидание игроков...</div>
+        </div>
+
+        <!-- Игровой экран -->
+        <div id="game-screen">
+            <canvas id="game-canvas"></canvas>
+            <div id="score-display">Score: 0</div>
+            <div id="crash-overlay">СТОЛКНОВЕНИЕ!<br><span style="font-size:1.2rem">Возвращаемся в меню...</span></div>
+        </div>
+    </div>
+
+    <script>
+        // Конфигурация игры
+        const config = {
+            playerSpeed: 7,
+            trafficSpeed: 6,
+            laneCount: 5,
+            laneWidth: 0,
+            carWidth: 50,
+            carHeight: 90,
+            spawnRate: 1200, // Увеличенное количество машин (в 2.5 раза)
+            scoreIncrement: 5,
+            scoreInterval: 100, // миллисекунды
+            sideMargin: 10, // Отступ от краев для обочины
+            multiplayerServer: "wss://example-game-server.com" // Пример сервера для мультиплеера
+        };
+
+        // Состояние игры
+        const gameState = {
+            screen: 'menu', // menu, multiplayer, game
+            score: 0,
+            highScore: localStorage.getItem('highwayRunnerHighScore') ? parseInt(localStorage.getItem('highwayRunnerHighScore')) : 0,
+            gameActive: false,
+            multiplayer: false,
+            playersConnected: 0,
+            gameCode: '',
+            lastSpawnTime: 0,
+            lastScoreTime: 0,
+            crashAnimation: false,
+            firstGamePlayed: localStorage.getItem('firstGamePlayed') === 'true'
+        };
+
+        // Элементы DOM
+        const elements = {
+            menuScreen: document.getElementById('menu-screen'),
+            multiplayerScreen: document.getElementById('multiplayer-screen'),
+            gameScreen: document.getElementById('game-screen'),
+            startButton: document.getElementById('start-button'),
+            multiplayerButton: document.getElementById('multiplayer-button'),
+            gameCode: document.getElementById('game-code'),
+            codeInput: document.getElementById('code-input'),
+            joinButton: document.getElementById('join-button'),
+            status: document.getElementById('status'),
+            highScore: document.getElementById('high-score'),
+            scoreDisplay: document.getElementById('score-display'),
+            canvas: document.getElementById('game-canvas'),
+            crashOverlay: document.getElementById('crash-overlay')
+        };
+
+        // Обновление отображения лучшего рекорда
+        function updateHighScoreDisplay() {
+            if (gameState.highScore > 0 || gameState.firstGamePlayed) {
+                elements.highScore.textContent = gameState.highScore;
+                elements.highScore.classList.add('show');
+            } else {
+                elements.highScore.classList.remove('show');
+            }
+        }
+
+        // Инициализация Canvas
+        const ctx = elements.canvas.getContext('2d');
+        elements.canvas.width = window.innerWidth;
+        elements.canvas.height = window.innerHeight;
+        config.laneWidth = (elements.canvas.width - config.sideMargin * 2) / config.laneCount;
+
+        // Игровые объекты
+        const gameObjects = {
+            player: null,
+            opponent: null,
+            traffic: [],
+            roadLines: []
+        };
+
+        // Класс игрока
+        class Player {
+            constructor(x, y, width, height, color, isPlayer = true) {
+                this.x = x;
+                this.y = y;
+                this.width = width;
+                this.height = height;
+                this.color = color;
+                this.isPlayer = isPlayer;
+                this.speed = config.playerSpeed;
+                this.lane = Math.floor(config.laneCount / 2);
+                this.targetX = config.sideMargin + this.lane * config.laneWidth + config.laneWidth / 2 - this.width / 2;
+            }
+
+            draw() {
+                // Кузов машины
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                
+                // Добавляем детали к машине
+                ctx.fillStyle = '#111';
+                ctx.fillRect(this.x + 5, this.y + 5, this.width - 10, this.height - 10);
+                
+                // Фары
+                ctx.fillStyle = '#ffff00';
+                ctx.fillRect(this.x + 10, this.y + 15, 8, 5);
+                ctx.fillRect(this.x + this.width - 18, this.y + 15, 8, 5);
+                
+                // Задние фары
+                ctx.fillStyle = '#ff0000';
+                ctx.fillRect(this.x + 10, this.y + this.height - 20, 8, 5);
+                ctx.fillRect(this.x + this.width - 18, this.y + this.height - 20, 8, 5);
+                
+                // Зеркала (без хитбокса)
+                ctx.fillStyle = this.color;
+                // Левое зеркало
+                ctx.fillRect(this.x - 5, this.y + 15, 5, 12);
+                // Правое зеркало
+                ctx.fillRect(this.x + this.width, this.y + 15, 5, 12);
+                
+                // Стекло
+                ctx.fillStyle = '#aaddff';
+                ctx.fillRect(this.x + 10, this.y + 25, this.width - 20, 15);
+            }
+
+            update() {
+                // Плавное движение к целевой позиции
+                if (Math.abs(this.targetX - this.x) > 1) {
+                    this.x += (this.targetX - this.x) * 0.1;
+                } else {
+                    this.x = this.targetX;
+                }
+            }
+
+            moveLeft() {
+                if (this.lane > 0) {
+                    this.lane--;
+                    this.targetX = config.sideMargin + this.lane * config.laneWidth + config.laneWidth / 2 - this.width / 2;
+                }
+            }
+
+            moveRight() {
+                if (this.lane < config.laneCount - 1) {
+                    this.lane++;
+                    this.targetX = config.sideMargin + this.lane * config.laneWidth + config.laneWidth / 2 - this.width / 2;
+                }
+            }
+        }
+
+        // Класс трафика
+        class TrafficCar {
+            constructor(lane) {
+                this.width = config.carWidth;
+                this.height = config.carHeight;
+                this.lane = lane;
+                this.x = config.sideMargin + lane * config.laneWidth + config.laneWidth / 2 - this.width / 2;
+                this.y = -this.height;
+                this.speed = config.trafficSpeed;
+                this.color = '#555';
+            }
+
+            draw() {
+                // Кузов машины
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                
+                // Добавляем детали к машине
+                ctx.fillStyle = '#333';
+                ctx.fillRect(this.x + 5, this.y + 5, this.width - 10, this.height - 10);
+                
+                // Фары
+                ctx.fillStyle = '#ffff00';
+                ctx.fillRect(this.x + 10, this.y + 15, 8, 5);
+                ctx.fillRect(this.x + this.width - 18, this.y + 15, 8, 5);
+                
+                // Задние фары
+                ctx.fillStyle = '#ff0000';
+                ctx.fillRect(this.x + 10, this.y + this.height - 20, 8, 5);
+                ctx.fillRect(this.x + this.width - 18, this.y + this.height - 20, 8, 5);
+                
+                // Зеркала (без хитбокса)
+                ctx.fillStyle = this.color;
+                // Левое зеркало
+                ctx.fillRect(this.x - 5, this.y + 15, 5, 12);
+                // Правое зеркало
+                ctx.fillRect(this.x + this.width, this.y + 15, 5, 12);
+                
+                // Стекло
+                ctx.fillStyle = '#aaddff';
+                ctx.fillRect(this.x + 10, this.y + 25, this.width - 20, 15);
+            }
+
+            update() {
+                this.y += this.speed;
+                return this.y > elements.canvas.height;
+            }
+        }
+
+        // Инициализация игры
+        function initGame() {
+            // Создание игрока
+            const playerX = config.sideMargin + config.laneWidth * Math.floor(config.laneCount / 2) + config.laneWidth / 2 - config.carWidth / 2;
+            const playerY = elements.canvas.height - config.carHeight - 20;
+            gameObjects.player = new Player(playerX, playerY, config.carWidth, config.carHeight, '#ff0000');
+            
+            // Создание противника для мультиплеера
+            if (gameState.multiplayer) {
+                const opponentX = config.sideMargin + config.laneWidth * Math.floor(config.laneCount / 2) + config.laneWidth / 2 - config.carWidth / 2;
+                const opponentY = playerY - config.carHeight - 30;
+                gameObjects.opponent = new Player(opponentX, opponentY, config.carWidth, config.carHeight, '#0055ff', false);
+            }
+            
+            // Инициализация линий дороги
+            for (let i = 0; i < 20; i++) {
+                gameObjects.roadLines.push({
+                    y: i * 100 - 50,
+                    width: 10,
+                    height: 30
+                });
+            }
+            
+            // Сброс состояния игры
+            gameState.score = 0;
+            gameObjects.traffic = [];
+            gameState.lastSpawnTime = Date.now();
+            gameState.lastScoreTime = Date.now();
+            gameState.gameActive = true;
+            gameState.crashAnimation = false;
+            
+            // Обновление интерфейса
+            elements.scoreDisplay.textContent = `Score: ${gameState.score}`;
+            elements.crashOverlay.style.display = 'none';
+        }
+
+        // Генерация трафика
+        function spawnTraffic() {
+            const now = Date.now();
+            if (now - gameState.lastSpawnTime > config.spawnRate) {
+                gameState.lastSpawnTime = now;
+                
+                // Выбираем случайную полосу
+                const lane = Math.floor(Math.random() * config.laneCount);
+                
+                // Проверяем, что на этой полосе нет машин
+                let canSpawn = true;
+                for (const car of gameObjects.traffic) {
+                    if (car.lane === lane && car.y < 100) {
+                        canSpawn = false;
+                        break;
+                    }
+                }
+                
+                if (canSpawn) {
+                    gameObjects.traffic.push(new TrafficCar(lane));
+                }
+            }
+        }
+
+        // Обновление счета
+        function updateScore() {
+            const now = Date.now();
+            if (now - gameState.lastScoreTime > config.scoreInterval) {
+                gameState.lastScoreTime = now;
+                gameState.score += config.scoreIncrement;
+                elements.scoreDisplay.textContent = `Score: ${gameState.score}`;
+                
+                // Обновление лучшего счета
+                if (gameState.score > gameState.highScore) {
+                    gameState.highScore = gameState.score;
+                    updateHighScoreDisplay();
+                    localStorage.setItem('highwayRunnerHighScore', gameState.highScore);
+                }
+            }
+        }
+
+        // Проверка столкновений
+        function checkCollisions() {
+            // Проверка столкновения с машинами трафика
+            for (const car of gameObjects.traffic) {
+                if (
+                    gameObjects.player.x < car.x + car.width &&
+                    gameObjects.player.x + gameObjects.player.width > car.x &&
+                    gameObjects.player.y < car.y + car.height &&
+                    gameObjects.player.y + gameObjects.player.height > car.y
+                ) {
+                    if (!gameState.crashAnimation) {
+                        handleCrash();
+                    }
+                    return;
+                }
+            }
+        }
+
+        // Обработка столкновения
+        function handleCrash() {
+            gameState.crashAnimation = true;
+            gameState.gameActive = false;
+            elements.crashOverlay.style.display = 'flex';
+            
+            // Помечаем, что первая игра была сыграна
+            if (!gameState.firstGamePlayed) {
+                gameState.firstGamePlayed = true;
+                localStorage.setItem('firstGamePlayed', 'true');
+                updateHighScoreDisplay();
+            }
+            
+            setTimeout(() => {
+                elements.crashOverlay.style.display = 'none';
+                showMenu();
+            }, 2000);
+        }
+
+        // Рендеринг игры
+        function render() {
+            // Очистка холста
+            ctx.clearRect(0, 0, elements.canvas.width, elements.canvas.height);
+            
+            // Рисуем дорогу
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0, 0, elements.canvas.width, elements.canvas.height);
+            
+            // Рисуем обочины
+            ctx.fillStyle = '#330000';
+            ctx.fillRect(0, 0, config.sideMargin, elements.canvas.height);
+            ctx.fillRect(elements.canvas.width - config.sideMargin, 0, config.sideMargin, elements.canvas.height);
+            
+            // Рисуем разделительные линии
+            ctx.fillStyle = '#ffffff';
+            const lineWidth = 10;
+            const lineHeight = 30;
+            const lineSpacing = 50;
+            
+            for (let i = 0; i < gameObjects.roadLines.length; i++) {
+                const line = gameObjects.roadLines[i];
+                line.y += config.trafficSpeed;
+                
+                if (line.y > elements.canvas.height) {
+                    line.y = -lineHeight;
+                }
+                
+                for (let j = 1; j < config.laneCount; j++) {
+                    const x = config.sideMargin + j * config.laneWidth - lineWidth / 2;
+                    ctx.fillRect(x, line.y, lineWidth, lineHeight);
+                }
+            }
+            
+            // Рисуем трафик
+            for (let i = gameObjects.traffic.length - 1; i >= 0; i--) {
+                const car = gameObjects.traffic[i];
+                car.draw();
+                
+                if (car.update()) {
+                    gameObjects.traffic.splice(i, 1);
+                }
+            }
+            
+            // Рисуем игрока
+            gameObjects.player.update();
+            gameObjects.player.draw();
+            
+            // Рисуем противника в мультиплеере
+            if (gameState.multiplayer && gameObjects.opponent) {
+                gameObjects.opponent.update();
+                gameObjects.opponent.draw();
+            }
+        }
+
+        // Игровой цикл
+        function gameLoop() {
+            if (!gameState.gameActive) return;
+            
+            updateScore();
+            spawnTraffic();
+            render();
+            checkCollisions();
+            
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Показать меню
+        function showMenu() {
+            gameState.screen = 'menu';
+            elements.menuScreen.style.display = 'flex';
+            elements.multiplayerScreen.style.display = 'none';
+            elements.gameScreen.style.display = 'none';
+            
+            // Обновление лучшего счета
+            updateHighScoreDisplay();
+        }
+
+        // Показать экран мультиплеера
+        function showMultiplayerScreen() {
+            gameState.screen = 'multiplayer';
+            elements.menuScreen.style.display = 'none';
+            elements.multiplayerScreen.style.display = 'flex';
+            elements.gameScreen.style.display = 'none';
+            
+            // Генерация кода игры
+            gameState.gameCode = Math.floor(10000000 + Math.random() * 90000000).toString();
+            elements.gameCode.textContent = gameState.gameCode;
+            elements.status.textContent = "Ожидание игроков...";
+            gameState.playersConnected = 1;
+        }
+
+        // Начать игру
+        function startGame() {
+            gameState.screen = 'game';
+            elements.menuScreen.style.display = 'none';
+            elements.multiplayerScreen.style.display = 'none';
+            elements.gameScreen.style.display = 'block';
+            
+            initGame();
+            gameLoop();
+        }
+
+        // Обработчики событий
+        elements.startButton.addEventListener('click', () => {
+            gameState.multiplayer = false;
+            startGame();
+        });
+
+        elements.multiplayerButton.addEventListener('click', showMultiplayerScreen);
+
+        elements.joinButton.addEventListener('click', () => {
+            const enteredCode = elements.codeInput.value;
+            if (enteredCode.length === 8) {
+                elements.status.textContent = "Подключение...";
+                
+                // В реальной игре здесь было бы подключение к серверу мультиплеера
+                // Для демонстрации мы имитируем подключение
+                
+                setTimeout(() => {
+                    gameState.multiplayer = true;
+                    elements.status.textContent = "1/2";
+                    
+                    // Имитация подключения второго игрока
+                    setTimeout(() => {
+                        elements.status.textContent = "2/2";
+                        
+                        // Начало игры через 1.5 секунды
+                        setTimeout(startGame, 1500);
+                    }, 1500);
+                }, 1000);
+            } else {
+                elements.status.textContent = "Неверный код!";
+            }
+        });
+
+        // Управление игрой
+        document.addEventListener('keydown', (e) => {
+            if (!gameState.gameActive) return;
+            
+            switch(e.key) {
+                case 'ArrowLeft':
+                    gameObjects.player.moveLeft();
+                    break;
+                case 'ArrowRight':
+                    gameObjects.player.moveRight();
+                    break;
+            }
+        });
+
+        // Сенсорное управление для мобильных устройств (с пониженной чувствительностью)
+        let touchStartX = 0;
+        const SWIPE_THRESHOLD = 50; // Увеличенный порог для уменьшения чувствительности
+        
+        elements.canvas.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            e.preventDefault();
+        });
+        
+        elements.canvas.addEventListener('touchmove', (e) => {
+            if (!gameState.gameActive) return;
+            
+            const touchX = e.touches[0].clientX;
+            const diffX = touchX - touchStartX;
+            
+            if (Math.abs(diffX) > SWIPE_THRESHOLD) {
+                if (diffX > 0) {
+                    gameObjects.player.moveRight();
+                } else {
+                    gameObjects.player.moveLeft();
+                }
+                touchStartX = touchX;
+            }
+            
+            e.preventDefault();
+        });
+
+        // Загрузка лучшего счета при запуске
+        window.addEventListener('load', () => {
+            updateHighScoreDisplay();
+            
+            // Анимация пульсации лучшего счета
+            setInterval(() => {
+                elements.highScore.style.animation = 'none';
+                setTimeout(() => {
+                    elements.highScore.style.animation = 'score-pulse 1.5s infinite';
+                }, 10);
+            }, 5000);
+        });
+
+        // Адаптация к изменению размера экрана
+        window.addEventListener('resize', () => {
+            elements.canvas.width = window.innerWidth;
+            elements.canvas.height = window.innerHeight;
+            config.laneWidth = (elements.canvas.width - config.sideMargin * 2) / config.laneCount;
+        });
+    </script>
+</body>
+</html>
